@@ -1,0 +1,81 @@
+import requests
+import json
+import datetime
+import os
+import boto3
+
+
+API_KEY = 'ff459256bfc21f3fa29ede6537ed5c40'
+BUCKET_NAME = 'asklepijes.com'
+
+s3 = boto3.client('s3')
+def download_and_store_weather_data():
+    url = f'http://api.openweathermap.org/data/2.5/weather?lat=50.0755&lon=14.4378&appid={API_KEY}&units=metric'
+    response = requests.get(url)
+    data = json.loads(response.text)
+
+    weather_data = {
+        'city': data['name'],
+        'temperature': data['main']['temp'],
+        'humidity': data['main']['humidity'],
+        'description': data['weather'][0]['description'],
+        'timestamp': datetime.datetime.now().isoformat()
+    }
+
+
+    filename = f'{weather_data["timestamp"]}.json'
+    with open(filename, 'w') as file:
+        json.dump(weather_data, file)
+    try:
+        s3.upload_file(filename, BUCKET_NAME, 'data/'+filename)
+    finally:
+        os.remove(filename)
+
+    return weather_data
+
+def display_weather_data(data):
+
+    html = f'''
+    <!DOCTYPE html> 
+    <html>
+        <head> 
+            <title>Weather Data</title> 
+            <meta charset="UTF-8">
+            <style> 
+            table {{ border-collapse: collapse;}} 
+            th, td {{ border: 1px solid black; padding: 5px;}} 
+            </style> 
+        </head> 
+        <body> 
+            <h1>Weather Data</h1> 
+            <table> 
+                <tr> 
+                    <th>City</th>
+                    <th>Temperature (&deg;C)</th> 
+                    <th>Humidity (%)</th> 
+                    <th>Description</th> 
+                    <th>Timestamp</th> 
+                </tr> 
+                <tr> 
+                    <td>{data['city']}</td> 
+                    <td>{data['temperature']}</td> 
+                    <td>{data['humidity']}</td> 
+                    <td>{data['description']}</td> 
+                    <td>{data['timestamp']}</td> 
+                </tr> 
+            </table> 
+        </body> 
+    </html>
+    '''
+
+    filename = 'index.html'
+    with open(filename, 'w') as f:
+        f.write(html)
+
+    try:
+        s3.upload_file(filename, BUCKET_NAME, filename,ExtraArgs={'ContentType':'text/html'})
+    finally:
+        os.remove(filename)
+if __name__ == '__main__':
+    weather_data = download_and_store_weather_data()
+    display_weather_data(weather_data)

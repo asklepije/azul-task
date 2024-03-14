@@ -1,0 +1,67 @@
+name: Initial deployment
+run-name: ${{ github.actor }}
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Get short Git SHA
+        id: gitsha
+        run: echo "::set-output name=short_sha::$(echo ${{ github.sha }} | cut -c1-8)"
+
+      - name: Check out repository code
+        uses: actions/checkout@v3.5.2
+        with:
+          submodules: "recursive"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::299828474095:role/oidc_role
+          aws-region: us-east-1
+
+      # - name: Deploy ECR
+      #   run: |
+      #     cd infra
+      #     terraform init
+      #     terraform apply -var image_version=${{ steps.gitsha.outputs.short_sha }} -target module.ecr.aws_ecr_repository.ecr -auto-approve
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push docker image to Amazon ECR
+        id: build-image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: task
+          IMAGE_TAG: ${{ steps.gitsha.outputs.short_sha }}
+        run: |
+          cd api
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$REGISTRY/$REPOSITORY:$IMAGE_TAG"
+
+      - name: Render Amazon ECS task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: aws/task_definition.json
+          container-name: task
+          image: ${{ steps.build-image.outputs.image }}
+      
+      - name: Register new taskdefinition
+        run: |
+          aws ecs register-task-definition \
+          --cli-input-json "file://${{ steps.render.outputs.task-definition }}"
+      
+      - name: Deregister old task definition
+        run: |
+          ./.github/workflows/deregister.sh task
