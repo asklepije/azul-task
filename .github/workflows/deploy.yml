@@ -27,12 +27,6 @@ jobs:
           role-to-assume: arn:aws:iam::299828474095:role/oidc_role
           aws-region: us-east-1
 
-      # - name: Deploy ECR
-      #   run: |
-      #     cd infra
-      #     terraform init
-      #     terraform apply -var image_version=${{ steps.gitsha.outputs.short_sha }} -target module.ecr.aws_ecr_repository.ecr -auto-approve
-
       - name: Login to ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
