@@ -5,3 +5,4 @@
 *.backup
 *.venv
 *.tfvars
+*.env

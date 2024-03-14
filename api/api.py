@@ -3,17 +3,19 @@ import json
 import datetime
 import os
 import boto3
+from dotenv import load_dotenv
 
+load_dotenv()
 
-API_KEY = 'ff459256bfc21f3fa29ede6537ed5c40'
-BUCKET_NAME = 'asklepijes.com'
+API_KEY = os.environ.get('API_KEY')
+BUCKET_NAME = os.environ.get('BUCKET_NAME')
 
 s3 = boto3.client('s3')
 def download_and_store_weather_data():
+
     url = f'http://api.openweathermap.org/data/2.5/weather?lat=50.0755&lon=14.4378&appid={API_KEY}&units=metric'
     response = requests.get(url)
     data = json.loads(response.text)
-
     weather_data = {
         'city': data['name'],
         'temperature': data['main']['temp'],
