@@ -21,7 +21,7 @@ resource "aws_iam_role_policy_attachment" "ecs_event_role_policy_attachment" {
 
 resource "aws_cloudwatch_event_rule" "hourly_task" {
   name                = "hourly-task-rule"
-  schedule_expression = "cron(29 * * * ? *)"
+  schedule_expression = "cron(0 * * * ? *)"
 }
 
 resource "aws_cloudwatch_event_target" "hourly_task_target" {
