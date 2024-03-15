@@ -1,12 +1,12 @@
 name: Initial deployment
-run-name: ${{ github.actor }}
+run-name: ${{github.event.head_commit.message}} by ${{ github.actor }}
 on:
   push:
     branches:
       - master
-  workflow_dispatch:
 jobs:
   deploy:
+    if: github.actor == 'anelesimander'
     runs-on: ubuntu-22.04
     permissions:
       id-token: write
