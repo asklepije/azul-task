@@ -1,6 +1,6 @@
 import requests
 import json
-import datetime
+from datetime import datetime, timedelta
 import os
 import boto3
 from dotenv import load_dotenv
@@ -21,18 +21,18 @@ def download_and_store_weather_data():
         'temperature': data['main']['temp'],
         'humidity': data['main']['humidity'],
         'description': data['weather'][0]['description'],
-        'timestamp': datetime.datetime.now().isoformat()
+        'timezone': data['timezone']
     }
 
-
-    filename = f'{weather_data["timestamp"]}.json'
+    timestamp=datetime.utcnow()
+    filename = f'{timestamp.isoformat()}.json'
     with open(filename, 'w') as file:
         json.dump(weather_data, file)
     try:
         s3.upload_file(filename, BUCKET_NAME, 'data/'+filename)
     finally:
         os.remove(filename)
-
+    weather_data["timestamp"]=timestamp+timedelta(hours=weather_data["timezone"]/ 3600 )
     return weather_data
 
 def display_weather_data(data):
