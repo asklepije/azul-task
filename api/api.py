@@ -13,7 +13,7 @@ BUCKET_NAME = os.environ.get('BUCKET_NAME')
 s3 = boto3.client('s3')
 def download_and_store_weather_data():
 
-    url = f'http://api.openweathermap.org/data/2.5/weather?lat=50.0755&lon=14.4378&appid={API_KEY}&units=metric'
+    url = f'https://api.openweathermap.org/data/2.5/weather?q=Prague,CZ&appid={API_KEY}&units=metric'
     response = requests.get(url)
     data = json.loads(response.text)
     weather_data = {
